@@ -1,1 +1,1 @@
-{"name":"diana-portfolio","private":true,"version":"29.0.0","scripts":{"dev":"node tools/preview.mjs"}}
+{"name":"diana-portfolio","private":true,"version":"34.0.0","scripts":{"dev":"node tools/preview.mjs","build":"python tools/render.py"}}
