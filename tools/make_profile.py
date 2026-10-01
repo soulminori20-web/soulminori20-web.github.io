@@ -1,6 +1,7 @@
 """Create a light two-page recruiter resume with an honest product focus."""
 from pathlib import Path
 import json
+import shutil
 from io import BytesIO
 
 from reportlab.pdfgen import canvas
@@ -10,10 +11,12 @@ from reportlab.lib.colors import HexColor
 from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
-from PIL import Image
+from PIL import Image, ImageOps
 
 R = Path(__file__).resolve().parents[1]
-OUT = R / 'assets/docs/diana-tkhaytsukhova-resume.pdf'
+OUT = R / 'output/pdf/diana-tkhaytsukhova-resume.pdf'
+SITE_OUT = R / 'assets/docs/diana-tkhaytsukhova-resume.pdf'
+OUT.parent.mkdir(parents=True, exist_ok=True)
 
 for name, filename in [
     ('Body', 'manrope-regular.ttf'),
@@ -37,14 +40,14 @@ SKY = HexColor('#91bfe7')
 c = canvas.Canvas(str(OUT), pagesize=(W, H))
 c.setTitle('Диана Тхайцухова - резюме графического дизайнера, UX/UI')
 c.setAuthor('Диана Тхайцухова')
-c.setSubject('Резюме графического дизайнера с развитием в UX/UI и продуктовом дизайне')
+c.setSubject('Резюме графического и UX/UI-дизайнера')
 
 styles = {
     'body': ParagraphStyle('body', fontName='Body', fontSize=9.3, leading=13.7, textColor=INK),
     'small': ParagraphStyle('small', fontName='Body', fontSize=8.1, leading=11.3, textColor=MUTED),
     'head': ParagraphStyle('head', fontName='Display', fontSize=12.4, leading=16.8, textColor=INK),
     'label': ParagraphStyle('label', fontName='Bold', fontSize=8.3, leading=11.2, textColor=ORANGE),
-    'card': ParagraphStyle('card', fontName='Body', fontSize=8.35, leading=11.6, textColor=INK),
+    'card': ParagraphStyle('card', fontName='Body', fontSize=7.9, leading=10.6, textColor=INK),
 }
 
 
@@ -52,6 +55,16 @@ def compact_image(path, max_px=1000, quality=84):
     """Embed a screen-sized JPEG instead of the multi-megabyte source."""
     image = Image.open(path).convert('RGB')
     image.thumbnail((max_px, max_px), Image.Resampling.LANCZOS)
+    buffer = BytesIO()
+    image.save(buffer, format='JPEG', quality=quality, optimize=True)
+    buffer.seek(0)
+    return ImageReader(buffer)
+
+
+def fitted_image(path, width=900, height=1080, quality=88):
+    """Crop a portrait to the resume frame without stretching the photo."""
+    image = Image.open(path).convert('RGB')
+    image = ImageOps.fit(image, (width, height), Image.Resampling.LANCZOS, centering=(.5, .42))
     buffer = BytesIO()
     image.save(buffer, format='JPEG', quality=quality, optimize=True)
     buffer.seek(0)
@@ -124,10 +137,10 @@ def page(number):
 
 def section(title, y):
     c.setStrokeColor(LINE)
-    c.line(44, y + 8, 551, y + 8)
+    c.line(44, y + 10, 551, y + 10)
     c.setFillColor(ORANGE)
-    c.circle(48, y - 1, 2.6, fill=1, stroke=0)
-    return p(title.upper(), 59, y + 4, 492, 'head') - 12
+    c.circle(48, y - 7, 2.6, fill=1, stroke=0)
+    return p(title.upper(), 59, y, 492, 'head') - 14
 
 
 def link(text, url, x, y, width, style='body'):
@@ -141,9 +154,9 @@ c.setFont('Display', 22.5)
 c.drawString(44, 761, 'Диана')
 c.drawString(44, 730, 'Тхайцухова.')
 gradient_rule(44, 716, 325)
-p('Графический дизайнер / Junior UX/UI', 44, 700, 330, 'head')
-p('Айдентика  ·  визуальные системы  ·  цифровые макеты', 44, 678, 330, 'small')
-p('Превращаю сложную идею в понятную визуальную систему. Сильна в айдентике, типографике, упаковке и подготовке макетов; умею доводить решение от концепции до цифрового или печатного носителя.', 44, 653, 330, 'body')
+p('Графический дизайнер / UX/UI', 44, 700, 330, 'head')
+p('Айдентика  ·  типографика  ·  интерфейсы  ·  производство', 44, 678, 330, 'small')
+p('Помогаю идеям обрести форму, характер и голос. Проектирую визуальные системы для брендов, продуктов и сервисов, работаю с контентной архитектурой и типографикой, довожу решения до разработки, печати или производства.', 44, 653, 330, 'body')
 
 c.setFillColor(BLUE)
 c.roundRect(402, 625, 149, 176, 12, fill=1, stroke=0)
@@ -151,34 +164,34 @@ c.saveState()
 clip = c.beginPath()
 clip.roundRect(409, 632, 135, 162, 9)
 c.clipPath(clip, stroke=0, fill=0)
-c.drawImage(compact_image(R / 'assets/img/about/diana-resume.jpg', 600, 88), 409, 632, 135, 162, mask='auto')
+c.drawImage(fitted_image(R / 'assets/img/about/diana-resume-2026.png'), 409, 632, 135, 162, mask='auto')
 c.restoreState()
 c.setFillColor(PINK)
 c.circle(407, 793, 11, fill=1, stroke=0)
 
 c.setFillColor(BLUE)
-c.roundRect(44, 493, 507, 108, 10, fill=1, stroke=0)
-p('<b>КОНТАКТЫ И ПОРТФОЛИО · САНКТ-ПЕТЕРБУРГ / УДАЛЁННО</b>', 59, 582, 360, 'label')
-link('<b>soulminori20-web.github.io</b>', 'https://soulminori20-web.github.io/', 59, 561, 355, 'body')
-link('Telegram: @soulminori', 'https://t.me/soulminori', 59, 538, 170, 'small')
-link('+7 951 385-70-17', 'tel:+79513857017', 232, 538, 145, 'small')
-link('Soulminori2.0@gmail.com', 'mailto:Soulminori2.0@gmail.com', 59, 518, 318, 'small')
+c.roundRect(44, 475, 507, 108, 10, fill=1, stroke=0)
+p('<b>КОНТАКТЫ И ПОРТФОЛИО · САНКТ-ПЕТЕРБУРГ / УДАЛЁННО</b>', 59, 564, 360, 'label')
+link('<b>soulminori20-web.github.io</b>', 'https://soulminori20-web.github.io/', 59, 543, 355, 'body')
+link('Telegram: @soulminori', 'https://t.me/soulminori', 59, 520, 170, 'small')
+link('+7 951 385-70-17', 'tel:+79513857017', 232, 520, 145, 'small')
+link('Soulminori2.0@gmail.com', 'mailto:Soulminori2.0@gmail.com', 59, 500, 318, 'small')
 c.setFillColor(PAPER)
-c.roundRect(439, 504, 91, 87, 7, fill=1, stroke=0)
-c.drawImage(ImageReader(str(R / 'assets/img/decor/portfolio-qr.png')), 447, 512, 71, 71, preserveAspectRatio=True, mask='auto')
-c.linkURL('https://soulminori20-web.github.io/', (439, 504, 530, 591), relative=0)
+c.roundRect(439, 486, 91, 87, 7, fill=1, stroke=0)
+c.drawImage(ImageReader(str(R / 'assets/img/decor/portfolio-qr.png')), 447, 494, 71, 71, preserveAspectRatio=True, mask='auto')
+c.linkURL('https://soulminori20-web.github.io/', (439, 486, 530, 573), relative=0)
 c.setFillColor(INK)
 c.setFont('Bold', 5.8)
-c.drawCentredString(484.5, 507, 'ОТКРЫТЬ ПОРТФОЛИО')
+c.drawCentredString(484.5, 489, 'ОТКРЫТЬ ПОРТФОЛИО')
 
-y = section('Опыт работы', 465)
+y = section('Опыт работы', 447)
 jobs = [
     ('Сентябрь 2025 - май 2026', 'Художник-конструктор / АО НПК «Северная заря»',
-     'Разрабатывала эскизы, визуальные концепции и рабочую документацию. Сопровождала решения до производства и согласовывала детали с инженерами и технологами.'),
-    ('Июль 2025 - сейчас', 'Дизайнер-декоратор / проектная деятельность',
-     'Развиваю визуальный стиль мастерской, проектирую упаковку, этикетки и материалы для соцсетей. Готовлю макеты к печати и продумываю оформление индивидуальных заказов.'),
+     'Разрабатывала эскизы, визуальные концепции и рабочую документацию для изделий. Учитывала технические ограничения, фиксировала изменения, согласовывала решения с инженерами и технологами и сопровождала материалы до передачи в производство.'),
     ('Апрель 2023 - сейчас', 'Графический дизайнер / фриланс',
-     'Создаю айдентику, рекламу, упаковку, презентации и полиграфию. Веду проект от первой концепции до правок, адаптаций и аккуратно собранных файлов для передачи.'),
+     'Создаю айдентику, интерфейсы, упаковку, презентации, полиграфию и digital-материалы. Веду проект от декомпозиции ТЗ и структуры контента до типографической системы, адаптаций, prepress и production-ready файлов.'),
+    ('Проектная практика', 'Гастрономия / образование / городская среда / B2B',
+     'Работала с меню и материалами GASTRO PORT на Пхукете, редакционными изданиями, навигацией, событийной айдентикой и упаковкой. Настраивала сетки, абзацные стили, цветовые профили, вылеты и контрольные PDF.'),
 ]
 for period, title, body in jobs:
     c.setFillColor(ORANGE)
@@ -202,18 +215,18 @@ c.setFont('Display', 19)
 c.drawString(44, 763, 'Дизайн, который помогает')
 c.drawString(44, 737, 'понять главное.')
 gradient_rule(44, 723, 507)
-y = p('Мне интересны продукты, где человеку нужно быстро сориентироваться в сложной информации. Мои сильные стороны - визуальная иерархия, системность, аккуратные адаптации и понятная передача макетов команде. Интерфейсное направление развиваю в Figma и учебных проектах.', 44, 704, 507, 'body') - 18
+y = p('Мне интересны продукты, где человеку нужно быстро сориентироваться в сложной информации. Сильные стороны - контентная архитектура, визуальная иерархия, типографические системы, аккуратные адаптации и понятная передача макетов команде, разработчикам или производству.', 44, 704, 507, 'body') - 18
 
 y = section('Навыки', y)
 cards = [
-    ('ВИЗУАЛЬНАЯ СИСТЕМА', 'Айдентика, упаковка, типографика, композиция, многостраничная вёрстка, цифровые макеты, прототипы и подготовка к печати.'),
-    ('ИНСТРУМЕНТЫ', 'Figma, Illustrator, Photoshop, InDesign, PowerPoint и AI-инструменты для поиска, развития и проверки идей.'),
-    ('РАБОТА В КОМАНДЕ', 'Аргументирую решения, спокойно работаю с обратной связью, соблюдаю сроки, поддерживаю порядок в файлах и учитываю производство.'),
+    ('НАВЫКИ', 'Айдентика, UX/UI, упаковка, editorial, типографика, модульные сетки, многостраничная вёрстка, prepress и подготовка к производству.'),
+    ('ПРОГРАММЫ', 'Figma, Illustrator, InDesign, Photoshop, Microsoft Office, CRM / CMS, таск-трекеры и AI-инструменты.'),
+    ('ПРОЦЕСС', 'Декомпозиция ТЗ, контентная архитектура, абзацные стили, цветовые профили, вылеты, цветопробы, спецификации и передача файлов.'),
 ]
 for i, (title, body) in enumerate(cards):
     x = 44 + i * 171
     c.setFillColor([BLUE, PINK, HexColor('#e7ddd3')][i])
-    c.roundRect(x, y - 106, 157, 106, 9, fill=1, stroke=0)
+    c.roundRect(x, y - 118, 157, 118, 9, fill=1, stroke=0)
     p(f'<b>{title}</b>', x + 12, y - 14, 133, 'label')
     p(body, x + 12, y - 38, 133, 'card')
 y -= 135
@@ -244,13 +257,14 @@ for i, (slug, item) in enumerate(data.items()):
 
 y = top - 297
 c.setFillColor(BLUE)
-c.roundRect(44, y - 64, 507, 64, 9, fill=1, stroke=0)
+c.roundRect(44, y - 78, 507, 78, 9, fill=1, stroke=0)
 p('<b>РЕАЛИЗОВАННЫЕ ПРОЕКТЫ</b>', 58, y - 14, 479, 'label')
-p('GASTRO PORT и «Северная заря». Также развиваю авторскую мастерскую «Хуторок»: визуальный стиль, мастер-классы, изделия и 3D-печать.', 58, y - 35, 479, 'card')
-y -= 78
+p('GASTRO PORT · «Северная заря» · ГОВОРИ · «Потерянное бюро» · «Язык взаимопонимания» · CALMES · NORDAX · «Атлас тишины» · ЧЕРТА · …', 58, y - 35, 479, 'card')
+y -= 92
 p('<b>Языки:</b> русский - родной, английский - B1.', 44, y, 300, 'small')
 link('Открыть портфолио', 'https://soulminori20-web.github.io/', 393, y, 158, 'small')
 assert y > 48, y
 c.showPage()
 c.save()
+shutil.copyfile(OUT, SITE_OUT)
 print(f'Two-page resume created: {OUT}')
